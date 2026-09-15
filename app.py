@@ -1,0 +1,53 @@
+import os
+
+import streamlit as st
+from dotenv import load_dotenv
+from openai import OpenAI
+
+load_dotenv()
+
+api_key = os.getenv("OPENAI_API_KEY")
+if not api_key:
+    st.error("Variável OPENAI_API_KEY não encontrada. Crie um arquivo .env com: OPENAI_API_KEY=sua_chave_aqui")
+    st.stop()
+
+client = OpenAI(api_key=api_key)
+
+st.set_page_config(page_title="ShopAI", page_icon="🛍️")
+st.title("🛍️ ShopAI")
+st.caption("Assistente virtual da nossa loja online")
+
+if "messages" not in st.session_state:
+    st.session_state["messages"] = [
+        {
+            "role": "system",
+            "content": (
+                "Você é o ShopAI, um assistente de uma loja online. "
+                "Ajude clientes com produtos, preços, pedidos, entregas "
+                "e dúvidas de forma simpática, objetiva e profissional."
+            ),
+        }
+    ]
+
+for message in st.session_state["messages"]:
+    if message["role"] != "system":
+        with st.chat_message(message["role"]):
+            st.markdown(message["content"])
+
+if prompt := st.chat_input("Como posso ajudar você?"):
+    st.session_state["messages"].append({"role": "user", "content": prompt})
+
+    with st.chat_message("user"):
+        st.markdown(prompt)
+
+    response = client.chat.completions.create(
+        model="gpt-4o-mini",
+        messages=st.session_state["messages"],
+    )
+
+    answer = response.choices[0].message.content
+
+    with st.chat_message("assistant"):
+        st.markdown(answer)
+
+    st.session_state["messages"].append({"role": "assistant", "content": answer})
